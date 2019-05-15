@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, serial, math, time, signal
+import sys, serial, math, time, signal, datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import numpy
@@ -15,9 +15,17 @@ def signal_handler(sig, frame):
 	plt.plot(x)
 	plt.show()
 	plt.close('all')
+	if(input("Save profile Y/N?").lower()=="y"):
+		saveData(data)
 	sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
+
+def saveData(data):
+	file_name =  "data/" + str(datetime.datetime.now()) + ".csv"
+	np.savetxt(data, delimeter)
+	print("Data saved to " + file_name)
+
 
 def map(input, inMin, inMax, outMin, outMax):
     output = (input - inMin) * (outMax - outMin) / (inMax - inMin) + outMin
