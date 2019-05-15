@@ -7,11 +7,10 @@ import numpy
 
 #function to save saveData
 def saveData(data):
-	print("Data saved to " + file_name)
 	file_name =  "data/" + str(datetime.datetime.now()) + ".csv"
-	np.savetxt(data, delimeter)
+	print("Data saved to " + file_name)
+	np.savetxt(file_name, data, delimiter=",")
 
-startTime = time.time()
 end = False
 def signal_handler(sig, frame):
 	global end, max, impulse
@@ -23,6 +22,8 @@ def signal_handler(sig, frame):
 	plt.show()
 	plt.close('all')
 	val = raw_input("Save profile Y/N?")
+	if(val == "y"):
+		saveData(data)
 	sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -32,7 +33,7 @@ def map(input, inMin, inMax, outMin, outMax):
     return output
 
 def toNewtons(value, zero=0, k=385.279037, n=4, max=502, min=0): #k in N/m, n is number of springs with constant k, max/min are of the pot
-	distance = map(value-zero, min, max, 0, 0.1) #in meters
+	distance = map(-(value-zero), min, max, 0, 0.1) #in meters
 	return n*k*distance
 
 ser = serial.Serial(port='/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_855313037303519142D0-if00', baudrate=115200)
@@ -41,19 +42,22 @@ time.sleep(1)
 zero = int(ser.readline().replace('\n', '').strip())
 print("Zero point = " + str(zero))
 
-data = np.zeros((0,2))
+data = np.zeros((1,2))
 max, impulse = 0, 0
 print("Recording Started...")
+startTime = time.time()
+
 while not end:
 	try:
 		raw = int(ser.readline().replace('\n', '').strip())
-		value = toNewtons(raw, zero)
-		data = np.append(data, np.array([[time.time() - startTime, value]]), axis=0)
-		if(value > max):
-			max = value
-		impulse += data[-1,1]*(data[-1,0]-data[-2,0])
 	except:
-		pass
+		continue
+	value = toNewtons(raw, zero)
+	if(value - data[-1,1] < 100): #filter out erroneous values
+		data = np.append(data, np.array([[time.time() - startTime, value]]), axis=0)
+	if(value > max):
+		max = value
+	impulse += data[-1,1]*(data[-1,0]-data[-2,0])
 
 
 # if(len(sys.argv) > 1):
