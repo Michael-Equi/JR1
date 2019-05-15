@@ -5,6 +5,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import numpy
 
+#function to save saveData
+def saveData(data):
+	print("Data saved to " + file_name)
+	file_name =  "data/" + str(datetime.datetime.now()) + ".csv"
+	np.savetxt(data, delimeter)
+
+startTime = time.time()
 end = False
 def signal_handler(sig, frame):
 	global end, max, impulse
@@ -12,20 +19,13 @@ def signal_handler(sig, frame):
 	print("##############################################")
 	print("Max thrust = " + str(max) + "N")
 	print("Total Impulse = " + str(impulse) + "Ns")
-	plt.plot(x)
+	plt.plot(data[...,1])
 	plt.show()
 	plt.close('all')
-	if(input("Save profile Y/N?").lower()=="y"):
-		saveData(data)
+	val = raw_input("Save profile Y/N?")
 	sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
-
-def saveData(data):
-	file_name =  "data/" + str(datetime.datetime.now()) + ".csv"
-	np.savetxt(data, delimeter)
-	print("Data saved to " + file_name)
-
 
 def map(input, inMin, inMax, outMin, outMax):
     output = (input - inMin) * (outMax - outMin) / (inMax - inMin) + outMin
@@ -33,7 +33,7 @@ def map(input, inMin, inMax, outMin, outMax):
 
 def toNewtons(value, zero=0, k=385.279037, n=4, max=502, min=0): #k in N/m, n is number of springs with constant k, max/min are of the pot
 	distance = map(value-zero, min, max, 0, 0.1) #in meters
-	return 4*k*distance
+	return n*k*distance
 
 ser = serial.Serial(port='/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_855313037303519142D0-if00', baudrate=115200)
 ser.readline()
@@ -43,26 +43,15 @@ print("Zero point = " + str(zero))
 
 data = np.zeros((0,2))
 max, impulse = 0, 0
-x = np.array((1))
-lastPlotPoint = time.time()
 print("Recording Started...")
 while not end:
 	try:
-		ser.flushInput()
-		value = toNewtons(int(ser.readline().replace('\n', '').strip()), zero)
-		data = np.append(data, np.array([[time.time(), value]]), axis=0)
-
+		raw = int(ser.readline().replace('\n', '').strip())
+		value = toNewtons(raw, zero)
+		data = np.append(data, np.array([[time.time() - startTime, value]]), axis=0)
 		if(value > max):
 			max = value
-
-		if(time.time() - lastPlotPoint > 0.1):
-			x = np.append(x,[value])
-			lastPlotPoint = time.time()
-
 		impulse += data[-1,1]*(data[-1,0]-data[-2,0])
-
-		time.sleep(0.001)
-
 	except:
 		pass
 
