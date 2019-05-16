@@ -3,7 +3,6 @@
 import sys, serial, math, time, signal, datetime
 import numpy as np
 import matplotlib.pyplot as plt
-import numpy
 
 #function to save saveData
 def saveData(data):
